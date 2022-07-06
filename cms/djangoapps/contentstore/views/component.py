@@ -302,6 +302,8 @@ def get_component_templates(courselike, library=False):  # lint-amnesty, pylint:
     allow_unsupported = getattr(courselike, "allow_unsupported_xblocks", False)
 
     for category in component_types:  # lint-amnesty, pylint: disable=too-many-nested-blocks
+        if category == 'openassessment':
+            breakpoint()
         authorable_variations = authorable_xblocks(allow_unsupported=allow_unsupported, name=category)
         support_level_without_template = component_support_level(authorable_variations, category)
         templates_for_category = []
@@ -315,8 +317,8 @@ def get_component_templates(courselike, library=False):  # lint-amnesty, pylint:
             display_name = xblock_type_display_name(category, _('Blank'))  # this is the Blank Advanced problem
             # The first template that is given should be Blank Assessment Template
             if category == 'openassessment':
-                display_name = _("Blank Open Response Assessment")
-                template_id = "blank-assessment"
+                display_name = _("Peer Assessment Only")
+                template_id = "peer-assessment"
             templates_for_category.append(
                 create_template_dict(display_name, category, support_level_without_template, template_id, 'advanced')
             )
