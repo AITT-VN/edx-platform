@@ -1,11 +1,9 @@
 """
 Emits course grade events.
 """
-from datetime import timedelta
 from logging import getLogger
 
 from crum import get_current_user
-from django.utils import timezone
 from eventtracking import tracker
 
 from common.djangoapps.course_modes.models import CourseMode
@@ -17,9 +15,9 @@ from common.djangoapps.track.event_transaction_utils import (
     get_event_transaction_type,
     set_event_transaction_type
 )
-from lms.djangoapps.grades.constants import LEARNER_PASSED_COURSE_FIRST_TIME_EVENT_TYPE
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
 from openedx.features.enterprise_support.context import get_enterprise_event_context
+from lms.djangoapps.grades.signals.signals import SCHEDULE_FOLLOW_UP_SEGMENT_EVENT_FOR_COURSE_PASSED_FIRST_TIME
 
 log = getLogger(__name__)
 
@@ -33,7 +31,6 @@ SUBSECTION_GRADE_CALCULATED = 'edx.grades.subsection.grade_calculated'
 COURSE_GRADE_PASSED_FIRST_TIME_EVENT_TYPE = 'edx.course.grade.passed.first_time'
 COURSE_GRADE_NOW_PASSED_EVENT_TYPE = 'edx.course.grade.now_passed'
 COURSE_GRADE_NOW_FAILED_EVENT_TYPE = 'edx.course.grade.now_failed'
-LEARNER_PASSED_COURSE_FIRST_TIME = LEARNER_PASSED_COURSE_FIRST_TIME_EVENT_TYPE
 
 
 def grade_updated(**kwargs):
@@ -218,10 +215,7 @@ def fire_segment_event_on_course_grade_passed_first_time(user_id, course_locator
 
     * Event should be only fired for learners enrolled in paid enrollment modes.
     """
-    # Avoid circular import
-    from lms.djangoapps.grades.models import LearnerCourseEvent
-
-    event_name = LEARNER_PASSED_COURSE_FIRST_TIME
+    event_name = 'edx.course.learner.passed.first_time'
     courserun_key = str(course_locator)
     courserun_org = course_locator.org
     paid_enrollment_modes = (
@@ -253,14 +247,12 @@ def fire_segment_event_on_course_grade_passed_first_time(user_id, course_locator
     }
     segment.track(user_id, event_name, event_properties)
 
-    # add event data into model
-    ninety_day_follow_up_date = timezone.now().date() + timedelta(days=90)
-    LearnerCourseEvent.objects.create(
+    # fire signal so that a follow up event can be scheduled in outcome_surveys app
+    SCHEDULE_FOLLOW_UP_SEGMENT_EVENT_FOR_COURSE_PASSED_FIRST_TIME.send(
+        sender=None,
         user_id=user_id,
         course_id=course_locator,
-        data=event_properties,
-        follow_up_date=ninety_day_follow_up_date,
-        event_type=LEARNER_PASSED_COURSE_FIRST_TIME
+        data=event_properties
     )
 
     log.info("Segment event fired for passed learners. Event: [{}], Data: [{}]".format(event_name, event_properties))

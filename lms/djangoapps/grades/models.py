@@ -26,7 +26,6 @@ from simple_history.models import HistoricalRecords
 
 from lms.djangoapps.courseware.fields import UnsignedBigIntAutoField
 from lms.djangoapps.grades import events  # lint-amnesty, pylint: disable=unused-import
-from lms.djangoapps.grades.constants import LEARNER_PASSED_COURSE_FIRST_TIME_EVENT_TYPE
 from lms.djangoapps.grades.signals.signals import COURSE_GRADE_PASSED_FIRST_TIME
 from openedx.core.lib.cache_utils import get_cache
 
@@ -798,27 +797,3 @@ class PersistentSubsectionGradeOverride(models.Model):
                 getattr(subsection_grade_model, field_name)
             )
         return cleaned_data
-
-
-class LearnerCourseEvent(TimeStampedModel):
-
-    user_id = models.IntegerField()
-    course_id = CourseKeyField(blank=False, max_length=255)
-    data = JSONField()
-    follow_up_date = models.DateField()
-
-    EVENT_CHOICES = [
-        (LEARNER_PASSED_COURSE_FIRST_TIME_EVENT_TYPE, LEARNER_PASSED_COURSE_FIRST_TIME_EVENT_TYPE),
-    ]
-    event_type = models.CharField(
-        max_length=255,
-        choices=EVENT_CHOICES,
-        default=LEARNER_PASSED_COURSE_FIRST_TIME_EVENT_TYPE,
-    )
-
-    class Meta:
-        app_label = "grades"
-        indexes = [
-            models.Index(fields=['follow_up_date']),
-            models.Index(fields=['created']),
-        ]
